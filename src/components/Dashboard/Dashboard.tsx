@@ -1,8 +1,9 @@
-import { BarChart3, TrendingUp, Download, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
+import { BarChart3, TrendingUp, Download, AlertCircle, CheckCircle, AlertTriangle, Sparkles } from 'lucide-react';
 import ProbabilityChart from '../Visualization/ProbabilityChart';
 import TrendChart from '../Visualization/TrendChart';
 import DistributionChart from '../Visualization/DistributionChart';
 import ExportPanel from '../Export/ExportPanel';
+import { formatProbabilitySimple, getTempUnitLabel } from '../../utils/weatherUtils';
 import type { DashboardProps } from '../../types';
 
 const Dashboard: React.FC<DashboardProps> = ({ location, queryParams, results, onNewQuery }) => {
@@ -53,6 +54,29 @@ const Dashboard: React.FC<DashboardProps> = ({ location, queryParams, results, o
     );
   };
 
+  // Unit per condition (from the thresholds user selected)
+  const getUnit = (condition: string) =>
+    queryParams.thresholds.find(t => t.condition === condition)?.unit ?? (condition === 'hot' || condition === 'cold' ? '°F' : '');
+
+  // One-line plain-language summary for quick understanding
+  const getInShortSummary = () => {
+    const probs = displayResults.probabilities;
+    if (!probs.length) return null;
+    const tempProbs = probs.filter(p => p.condition === 'hot' || p.condition === 'cold');
+    const avgTemp = tempProbs.length ? tempProbs.reduce((a, p) => a + p.mean, 0) / tempProbs.length : null;
+    const unit = tempProbs[0] ? getTempUnitLabel(tempProbs[0].condition, getUnit(tempProbs[0].condition)) : '°F';
+    const parts: string[] = [];
+    if (avgTemp != null) parts.push(`On this date it’s usually around ${Math.round(avgTemp)}${unit}.`);
+    probs.forEach(p => {
+      const simple = formatProbabilitySimple(p.probability);
+      const label = p.condition === 'hot' ? 'very hot' : p.condition === 'cold' ? 'very cold' : p.condition;
+      parts.push(`Chance of ${label}: ${simple}.`);
+    });
+    return parts.join(' ');
+  };
+
+  const inShort = getInShortSummary();
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Header */}
@@ -78,6 +102,19 @@ const Dashboard: React.FC<DashboardProps> = ({ location, queryParams, results, o
           </div>
         </div>
       </div>
+
+      {/* In short — easy to understand in one line */}
+      {inShort && (
+        <div className="glass-card p-4 border-l-4 border-amber-500/60 bg-amber-500/5">
+          <div className="flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-200/90 mb-1">In short</p>
+              <p className="text-gray-200 text-sm leading-relaxed">{inShort}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Summary Card */}
       <div className="glass-card p-6 border-l-4 border-nasa-blue">
@@ -129,7 +166,7 @@ const Dashboard: React.FC<DashboardProps> = ({ location, queryParams, results, o
           <BarChart3 className="w-6 h-6 text-nasa-blue" />
           <span>Probability Analysis</span>
         </h3>
-        <ProbabilityChart data={displayResults.probabilities} />
+        <ProbabilityChart data={displayResults.probabilities} units={displayResults.probabilities.map(p => getTempUnitLabel(p.condition, getUnit(p.condition)) || undefined)} />
       </div>
 
       {/* Historical Trends Chart */}
@@ -157,7 +194,7 @@ const Dashboard: React.FC<DashboardProps> = ({ location, queryParams, results, o
         </h3>
         <div className="grid md:grid-cols-2 gap-6">
           {displayResults.probabilities.map((prob, index) => (
-            <DistributionChart key={index} data={prob} />
+            <DistributionChart key={index} data={prob} unit={getTempUnitLabel(prob.condition, getUnit(prob.condition)) || undefined} />
           ))}
         </div>
       </div>
@@ -166,39 +203,44 @@ const Dashboard: React.FC<DashboardProps> = ({ location, queryParams, results, o
       <div>
         <h3 className="text-2xl font-bold text-white mb-4">Detailed Statistics</h3>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayResults.probabilities.map((prob, index) => (
-            <div key={index} className="glass-card p-6">
-              <h4 className="text-lg font-semibold text-white mb-4 capitalize">
-                {prob.condition} Conditions
-              </h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Probability:</span>
-                  <span className="text-white font-semibold">{prob.probability.toFixed(1)}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Mean:</span>
-                  <span className="text-white font-semibold">{prob.mean.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Median:</span>
-                  <span className="text-white font-semibold">{prob.median.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">25th Percentile:</span>
-                  <span className="text-white font-semibold">{prob.percentile25.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">75th Percentile:</span>
-                  <span className="text-white font-semibold">{prob.percentile75.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">90th Percentile:</span>
-                  <span className="text-white font-semibold">{prob.percentile90.toFixed(2)}</span>
+          {displayResults.probabilities.map((prob, index) => {
+            const unit = getTempUnitLabel(prob.condition, getUnit(prob.condition));
+            const suffix = unit ? ` ${unit}` : '';
+            const simpleLikelihood = formatProbabilitySimple(prob.probability);
+            return (
+              <div key={index} className="glass-card p-6">
+                <h4 className="text-lg font-semibold text-white mb-4 capitalize">
+                  {prob.condition} Conditions
+                </h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-gray-400">Likelihood:</span>
+                    <span className="text-white font-semibold">{prob.probability.toFixed(1)}% <span className="text-gray-400 font-normal text-sm">({simpleLikelihood})</span></span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Mean:</span>
+                    <span className="text-white font-semibold">{prob.mean.toFixed(2)}{suffix}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Median:</span>
+                    <span className="text-white font-semibold">{prob.median.toFixed(2)}{suffix}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">25th Percentile:</span>
+                    <span className="text-white font-semibold">{prob.percentile25.toFixed(2)}{suffix}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">75th Percentile:</span>
+                    <span className="text-white font-semibold">{prob.percentile75.toFixed(2)}{suffix}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">90th Percentile:</span>
+                    <span className="text-white font-semibold">{prob.percentile90.toFixed(2)}{suffix}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

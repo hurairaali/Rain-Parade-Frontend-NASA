@@ -8,9 +8,11 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 interface ProbabilityChartProps {
   data: ProbabilityData[];
   type?: 'bar' | 'line';
+  /** Optional unit per data point (e.g. ['°F','°F']) for tooltip */
+  units?: (string | undefined)[];
 }
 
-const ProbabilityChart: React.FC<ProbabilityChartProps> = ({ data, type = 'bar' }) => {
+const ProbabilityChart: React.FC<ProbabilityChartProps> = ({ data, type = 'bar', units }) => {
   const chartRef = useRef(null);
 
   const conditionColors: Record<string, { bg: string; border: string }> = {
@@ -62,10 +64,13 @@ const ProbabilityChart: React.FC<ProbabilityChartProps> = ({ data, type = 'bar' 
         displayColors: true,
         callbacks: {
           label: function(context: any) {
+            const i = context.dataIndex;
+            const d = data[i];
+            const u = units?.[i] ? ` ${units[i]}` : '';
             return [
               `Probability: ${context.parsed.y.toFixed(1)}%`,
-              `Mean: ${data[context.dataIndex].mean.toFixed(1)}`,
-              `Std Dev: ${data[context.dataIndex].stdDev.toFixed(1)}`
+              `Mean: ${d.mean.toFixed(1)}${u}`,
+              `Std Dev: ${d.stdDev.toFixed(1)}${u}`
             ];
           }
         }

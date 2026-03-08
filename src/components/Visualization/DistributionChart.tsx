@@ -7,9 +7,11 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 interface DistributionChartProps {
   data: ProbabilityData;
   title?: string;
+  /** e.g. '°F' or '°C' — shown next to Mean/Median/Std Dev */
+  unit?: string;
 }
 
-const DistributionChart: React.FC<DistributionChartProps> = ({ data, title }) => {
+const DistributionChart: React.FC<DistributionChartProps> = ({ data, title, unit }) => {
   // Generate bell curve data points
   const generateBellCurve = (mean: number, stdDev: number, points: number = 50) => {
     const values: number[] = [];
@@ -99,15 +101,15 @@ const DistributionChart: React.FC<DistributionChartProps> = ({ data, title }) =>
       <div className="mt-4 grid grid-cols-3 gap-4 text-center text-sm">
         <div>
           <p className="text-gray-400">Mean</p>
-          <p className="text-white font-semibold">{data.mean.toFixed(2)}</p>
+          <p className="text-white font-semibold">{data.mean.toFixed(2)}{unit ? ` ${unit}` : ''}</p>
         </div>
         <div>
           <p className="text-gray-400">Median</p>
-          <p className="text-white font-semibold">{data.median.toFixed(2)}</p>
+          <p className="text-white font-semibold">{data.median.toFixed(2)}{unit ? ` ${unit}` : ''}</p>
         </div>
         <div>
           <p className="text-gray-400">Std Dev</p>
-          <p className="text-white font-semibold">{data.stdDev.toFixed(2)}</p>
+          <p className="text-white font-semibold">{data.stdDev.toFixed(2)}{unit ? ` ${unit}` : ''}</p>
         </div>
       </div>
     </div>

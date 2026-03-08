@@ -29,13 +29,38 @@ export const getConditionDescription = (condition: WeatherCondition): string => 
 };
 
 /**
- * Format probability percentage
+ * Format probability percentage (for charts/labels)
  */
 export const formatProbability = (probability: number): string => {
   if (probability >= 75) return 'Very High';
   if (probability >= 50) return 'High';
   if (probability >= 25) return 'Moderate';
   return 'Low';
+};
+
+/**
+ * Simple wording for likelihood — easy for anyone to understand
+ */
+export const formatProbabilitySimple = (probability: number): string => {
+  if (probability >= 95) return 'Almost certain';
+  if (probability >= 75) return 'Very likely';
+  if (probability >= 50) return 'Likely';
+  if (probability >= 25) return 'Possible';
+  if (probability >= 10) return 'Unlikely';
+  if (probability >= 1) return 'Very unlikely';
+  return 'Almost no chance';
+};
+
+/**
+ * Unit label for temperature display (hot/cold). Use threshold unit or default °F.
+ */
+export const getTempUnitLabel = (condition: string, unitFromThreshold?: string): string => {
+  if (condition === 'hot' || condition === 'cold') {
+    const u = (unitFromThreshold || '°F').trim();
+    if (u.includes('C') || u === '°C') return '°C';
+    return '°F';
+  }
+  return '';
 };
 
 /**
